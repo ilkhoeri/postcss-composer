@@ -1,39 +1,40 @@
-import type { AtRule, Declaration, Root } from 'postcss';
+import type { AtRule, Root } from 'postcss';
 
-const unsafePattern = /^(calc|clamp)\(|(rgba|var|min|max|url|linear-gradient|radial-gradient|repeating-linear-gradient|repeating-radial-gradient)\(/;
+/** @internal unsafePattern */
+const rg = /^(calc|clamp)\(|(rgba|var|min|max|url|linear-gradient|radial-gradient|repeating-linear-gradient|repeating-radial-gradient)\(/;
 
-function scale(v: string): string {
+function _sc(v: string): string {
   return `calc(${v} * var(--scale, 1))`;
 }
-
-function converter(units: 'rem' | 'em', { scaling = false, transform = true } = {}) {
+/** @internal converter */
+function ct(u: 'rem' | 'em', { s = false, n = true } = {}) {
   function convert(v: string | number): string {
-    if ((v === 0 || v === '0') && transform) return `0${units}`;
+    if ((v === 0 || v === '0') && n) return `0${u}`;
 
     if (typeof v === 'number') {
-      const val = `${v / 16}${units}`;
-      return scaling ? scale(val) : val;
+      const i = `${v / 16}${u}`;
+      return s ? _sc(i) : i;
     }
 
     if (typeof v === 'string') {
-      if (unsafePattern.test(v)) return v;
+      if (rg.test(v)) return v;
 
       const delimiter = v.includes(',') ? ',' : v.includes(' ') ? ' ' : null;
       if (delimiter) {
         return v
           .split(delimiter)
-          .map(val => convert(val.trim()))
+          .map(i => convert(i.trim()))
           .join(delimiter);
       }
 
-      if (v.includes(units)) return scaling ? scale(v) : v;
+      if (v.includes(u)) return s ? _sc(v) : v;
 
       const r = v.replace('px', '');
       const parsed = Number(r);
-      if (r === v && !transform) return v;
+      if (r === v && !n) return v;
       if (!Number.isNaN(parsed)) {
-        const val = `${parsed / 16}${units}`;
-        return scaling ? scale(val) : val;
+        const i = `${parsed / 16}${u}`;
+        return s ? _sc(i) : i;
       }
     }
 
@@ -43,53 +44,63 @@ function converter(units: 'rem' | 'em', { scaling = false, transform = true } = 
   return convert;
 }
 
-const rem = converter('rem', { scaling: true });
-export const em = converter('em');
-const remNoScale = converter('rem');
-const remStrict = converter('rem', { scaling: true, transform: false });
+const m = ct('em');
+const rm = ct('rem', { s: true });
+const _rm = ct('rem');
 
-const createUnitRegExp = (unit: 'rem' | 'em') => new RegExp(`\\b${unit}\\(([^()]+)\\)`, 'g');
+/** @internal remove leading '--' or '-' and trailing '--scale' / '-scale' */
+function ld(raw: string): string {
+  return (
+    'var(--' +
+    raw
+      .replace(/^-+/, '') // Hapus semua leading dash
+      .replace(/^--+/, '') // Hapus semua leading double dash
+      .replace(/--?scale$/, '') // Hapus suffix -scale atau --scale
+      .replace(/[^a-zA-Z0-9]+/g, '-') // Ganti semua non-alphanumeric menjadi dash
+      .replace(/^-+|-+$/g, '') // Hapus dash di awal/akhir
+      .toLowerCase() +
+    '-scale, 1)'
+  );
+}
+/** @internal scale(value, factor = 1) => `calc(<rem> * <factor>)` */
+function sc(i: string): string {
+  const [v, s = '1'] = i.split(',').map(x => x.trim());
+  const n = /^\d/.test(s) || Number.isFinite(+s) ? s : ld(s);
+  return `calc(${_rm(v)} * ${n})`;
+}
 
-const unitRegExps = {
-  rem: createUnitRegExp('rem'),
-  em: createUnitRegExp('em')
+/** @internal createUnitRegExp */
+const cur = (i: string) => new RegExp(`\\b${i}\\(([^()]+)\\)`, 'g');
+/** @internal unitRegExps */
+const ur = {
+  rem: cur('rem'),
+  em: cur('em'),
+  scale: cur('scale')
 };
-
-function replaceUnitValues(input: string, unit: 'rem' | 'em', fn: (val: string) => string) {
-  const regexp = unitRegExps[unit];
-  return input.replace(regexp, (_, value) => fn(value));
+/** @internal replaceUnitValues */
+function ruv(i: string, u: keyof typeof ur, fn: (v: string) => string) {
+  const rg = ur[u];
+  return i.replace(rg, (_, v) => fn(v));
 }
 
 module.exports = () => ({
   postcssPlugin: 'postcss-units',
 
   Once(root: Root) {
-    root.replaceValues(unitRegExps.rem, { fast: 'rem(' }, (_, val) => rem(val));
-    root.replaceValues(unitRegExps.em, { fast: 'em(' }, (_, val) => em(val));
-  },
-
-  Declaration(decl: Declaration) {
-    if (!decl.value.includes('px')) return;
-    if (decl.prop === 'content') return;
-    decl.value = remStrict(decl.value);
+    root.replaceValues(ur.rem, { fast: 'rem(' }, (_, i) => rm(i));
+    root.replaceValues(ur.em, { fast: 'em(' }, (_, i) => m(i));
+    root.replaceValues(ur.scale, { fast: 'scale(' }, (_, i) => sc(i));
   },
 
   AtRule: {
     media(atRule: AtRule) {
-      atRule.params = replaceUnitValues(
-        replaceUnitValues(atRule.params, 'rem', val => remNoScale(val)),
-        'em',
-        val => em(val)
-      );
+      atRule.params = ruv(ruv(ruv(atRule.params, 'scale', sc), 'rem', _rm), 'em', m);
     },
     container(atRule: AtRule) {
-      atRule.params = replaceUnitValues(
-        replaceUnitValues(atRule.params, 'rem', val => remNoScale(val)),
-        'em',
-        val => em(val)
-      );
+      atRule.params = ruv(ruv(ruv(atRule.params, 'scale', sc), 'rem', _rm), 'em', m);
     }
   }
 });
 
+export { m as em };
 module.exports.postcss = true;

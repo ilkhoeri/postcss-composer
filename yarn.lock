@@ -1682,6 +1682,11 @@
   dependencies:
     "@babel/types" "^7.20.7"
 
+"@types/culori@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@types/culori/-/culori-4.0.0.tgz#fe0d3e7697081195a44b35d114fe6d971bcc2c62"
+  integrity sha512-aFljQwjb++sl6TAyEXeHTiK/fk9epZOQ+nMmadjnAvzZFIvNoQ0x8XQYfcOaRTBwmDUPUlghhZCJ66MTcqQAsg==
+
 "@types/estree@1.0.7", "@types/estree@^1.0.0", "@types/estree@^1.0.6":
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.7.tgz#4158d3105276773d5b7695cd4834b1722e4f37a8"
@@ -2488,6 +2493,11 @@ cssesc@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/cssesc/-/cssesc-3.0.0.tgz#37741919903b868565e1c09ea747445cd18983ee"
   integrity sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg==
+
+culori@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/culori/-/culori-4.0.1.tgz#e50e4a9104bbd1201443f29acf19af6d0a988d15"
+  integrity sha512-LSnjA6HuIUOlkfKVbzi2OlToZE8OjFi667JWN9qNymXVXzGDmvuP60SSgC+e92sd7B7158f7Fy3Mb6rXS5EDPw==
 
 data-view-buffer@^1.0.2:
   version "1.0.2"

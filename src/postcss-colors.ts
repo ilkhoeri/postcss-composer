@@ -1,133 +1,134 @@
-import type { Declaration, Root } from 'postcss';
+import type { Declaration, Root, Rule } from 'postcss';
+import { parse, formatCss, converter } from 'culori';
 
-/** Convert hex string to RGB components */
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return { r, g, b };
+const Mode = ['a98', 'cubehelix', 'dlab', 'dlch', 'hsi', 'hsl', 'hsv', 'hwb', 'itp', 'jab', 'jch', 'lab', 'lab65', 'lch', 'lch65', 'lchuv', 'lrgb', 'luv', 'okhsl', 'okhsv', 'oklab', 'oklch', 'p3', 'prophoto', 'rec2020', 'rgb', 'xyb', 'xyz50', 'xyz65', 'yiq'] as const;
+type Mode = (typeof Mode)[number];
+
+const modeRE = new RegExp(`\\b(${Mode.join('|')})\\(var\\((--[\\w-]+)(?:,\\s*([^)]+))?\\)(?:\\s*/\\s*([\\d.]+))?\\)`, 'g');
+
+/** @internal `normalizeHex`: Convert hex string to RGB components */
+function hx(i: string) {
+  if (i[0] !== '#') i = `#${i}`;
+  if (i.length === 4) i = `#${i[1]}${i[1]}${i[2]}${i[2]}${i[3]}${i[3]}`;
+  return i;
 }
 
-/** Convert RGB to HSL format string */
-function rgbToHsl({ r, g, b }: { r: number; g: number; b: number }, alpha?: string): string {
-  r /= 255;
-  g /= 255;
-  b /= 255;
+// function resolveVariable(rule: Rule, varName: string): string | undefined {
+//   let current: Rule | Root | undefined = rule;
+//   let value: string | undefined;
 
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h: number, s: number;
-  const l = (max + min) / 2;
+//   while (current) {
+//     if ('walkDecls' in current) {
+//       current.walkDecls(varName, decl => {
+//         const parsed = parse(decl.value.trim());
+//         if (parsed) value = decl.value.trim();
+//       });
+//       if (value) return value;
+//     }
+//     current = (current as any).parent;
+//   }
 
-  if (max === min) {
-    h = s = 0;
-  } else {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r:
-        h = (g - b) / d + (g < b ? 6 : 0);
-        break;
-      case g:
-        h = (b - r) / d + 2;
-        break;
-      case b:
-        h = (r - g) / d + 4;
-        break;
-      default:
-        h = 0;
+//   return undefined;
+// }
+
+function switchColor(fn: Mode, hex: string, alpha: string | undefined, defaultReturn: string) {
+  const colorObj = parse(hex);
+  if (!colorObj) return defaultReturn;
+
+  const convertTo = converter(fn); // safe: fn bisa hsl, rgb, jab, okhsv, dll
+  const converted = convertTo({ ...colorObj, alpha: alpha ? Number(alpha) : colorObj.alpha });
+  if (!converted) return defaultReturn;
+
+  return formatCss(converted);
+}
+
+function resolveVariable(rule: Rule, varName: string, fallback?: string): string | undefined {
+  let current: Rule | Root | undefined = rule;
+  let value: string | undefined;
+
+  while (current) {
+    if ('walkDecls' in current) {
+      current.walkDecls(varName, decl => {
+        const parsed = parse(decl.value.trim());
+        if (parsed) value = decl.value.trim();
+      });
+      if (value) return value;
     }
-    h *= 60;
+    current = (current as any).parent;
   }
 
-  return `hsl(${h.toFixed(2)}deg ${(s * 100).toFixed(2)}% ${(l * 100).toFixed(2)}%${alpha ? ` / ${alpha}` : ''})`;
+  // Fallback support
+  if (fallback) {
+    const parsedFallback = parse(fallback);
+    if (parsedFallback) return fallback;
+  }
+
+  return undefined;
 }
 
-/** Convert RGB to RGB string */
-function rgbToString({ r, g, b }: { r: number; g: number; b: number }, alpha?: string): string {
-  return `rgb(${r} ${g} ${b}${alpha ? ` / ${alpha}` : ''})`;
+function resolveValueRecursive(rule: Rule, rawValue: string, visited = new Set<string>()): string | undefined {
+  const varMatch = rawValue.match(/^var\((--[\w-]+)(?:,\s*([^)]+))?\)$/);
+  if (!varMatch) return rawValue;
+
+  const [, varName, fallback] = varMatch;
+  if (visited.has(varName)) return fallback; // Avoid infinite loop
+  visited.add(varName);
+
+  const resolved = resolveVariable(rule, varName, fallback);
+  if (!resolved) return fallback;
+  return resolveValueRecursive(rule, resolved, visited);
 }
 
-/** Convert RGB to HWB format string */
-function rgbToHwb({ r, g, b }: { r: number; g: number; b: number }, alpha?: string): string {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
+// function switchColor(fn: string, hex: string, alpha: string | undefined, defaultReturn: string) {
+//   const colorObj = parse(hex);
+//   if (!colorObj) return defaultReturn;
+//   const color = { ...colorObj, alpha: alpha ? Number(alpha) : colorObj.alpha };
 
-  let h = 0;
-  if (max === min) h = 0;
-  else if (max === r) h = (60 * ((g - b) / (max - min)) + 360) % 360;
-  else if (max === g) h = (60 * ((b - r) / (max - min)) + 120) % 360;
-  else if (max === b) h = (60 * ((r - g) / (max - min)) + 240) % 360;
-
-  const w = Math.min(r, g, b) * 100;
-  const bl = (1 - max) * 100;
-
-  return `hwb(${h.toFixed(2)}deg ${w.toFixed(2)}% ${bl.toFixed(2)}%${alpha ? ` / ${alpha}` : ''})`;
-}
-
-/** Convert RGB to OKLCH format string (approximate, simplified) */
-function rgbToOklch({ r, g, b }: { r: number; g: number; b: number }, alpha?: string): string {
-  const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  const c = 0.01; // placeholder chroma
-  const h = 0; // placeholder hue
-  return `oklch(${(l / 255).toFixed(2)} ${c.toFixed(2)} ${h.toFixed(2)}${alpha ? ` / ${alpha}` : ''})`;
-}
-
-/** Extract CSS variable and alpha from function */
-function extractParts(value: string): { fn: string; varName: string; alpha?: string } | null {
-  const match = /^(hsl|rgb|hwb|oklch)\(var\((--[\w-]+)\)(?:\s*\/\s*([\d.]+))?\)$/.exec(value);
-  if (!match) return null;
-  const [, fn, varName, alpha] = match;
-  return { fn, varName, alpha };
-}
+//   switch (fn) {
+//     case 'hsl':
+//       return formatHsl(color);
+//     case 'rgb':
+//       return formatRgb(color);
+//     case 'hwb':
+//       return formatCss(color);
+//     case 'oklch':
+//       return formatCss(color);
+//     default:
+//       return defaultReturn;
+//   }
+// }
 
 module.exports = () => ({
   postcssPlugin: 'postcss-colors',
-
   Once(root: Root) {
-    const variables: Record<string, string> = {};
+    const allVariables: Record<string, string[]> = {};
 
-    // Step 1: Collect variable definitions from :root
-    root.walkRules(':root', rule => {
+    root.walkRules(rule => {
       rule.walkDecls(decl => {
-        if (decl.prop.startsWith('--') && /^#(?:[0-9a-fA-F]{6})$/.test(decl.value)) {
-          variables[decl.prop] = decl.value;
+        if (decl.prop.startsWith('--') && /^#(?:[0-9a-fA-F]{6})$/.test(hx(decl.value))) {
+          if (!allVariables[decl.prop]) allVariables[decl.prop] = [];
+          allVariables[decl.prop].push(hx(decl.value));
         }
       });
     });
 
-    // Step 2: Replace color functions using the collected variables
     root.walkDecls((decl: Declaration) => {
-      const parts = extractParts(decl.value.trim());
-      if (!parts) return;
+      // const updated = decl.value.replace(/\b(hsl|rgb|hwb|oklch)\(var\((--[\w-]+)\)(?:\s*\/\s*([\d.]+))?\)/g, (_, fn: Mode, varName: string, alpha?: string) => {
+      //   const hex = resolveVariable(decl.parent as Rule, varName);
+      //   const defaultReturn = `${fn}(var(${varName})${alpha ? ` / ${alpha}` : ''})`;
+      //   if (!hex) return defaultReturn;
+      //   return switchColor(fn, hex, alpha, defaultReturn);
+      // });
 
-      const hex = variables[parts.varName];
-      if (!hex) return;
+      const updated = decl.value.replace(modeRE, (_, fn: Mode, varName: string, fallback: string | undefined, alpha?: string) => {
+        const rawValue = resolveVariable(decl.parent as Rule, varName, fallback);
+        const resolved = rawValue ? resolveValueRecursive(decl.parent as Rule, rawValue) : undefined;
+        const defaultReturn = `${fn}(var(${varName}${fallback ? `, ${fallback}` : ''})${alpha ? ` / ${alpha}` : ''})`;
+        if (!resolved) return defaultReturn;
+        return switchColor(fn, resolved, alpha, defaultReturn);
+      });
 
-      const rgb = hexToRgb(hex);
-      let result = decl.value;
-
-      switch (parts.fn) {
-        case 'hsl':
-          result = rgbToHsl(rgb, parts.alpha);
-          break;
-        case 'rgb':
-          result = rgbToString(rgb, parts.alpha);
-          break;
-        case 'hwb':
-          result = rgbToHwb(rgb, parts.alpha);
-          break;
-        case 'oklch':
-          result = rgbToOklch(rgb, parts.alpha);
-          break;
-        default:
-          break;
-      }
-
-      decl.value = result;
+      decl.value = updated;
     });
   }
 });
