@@ -45,14 +45,6 @@ Add `postcss-composer` to your `postcss.config.mjs`:
 export default {
   plugins: {
     'postcss-composer': {
-      'themes-attr': 'class'
-    }
-  }
-};
-
-export default {
-  plugins: {
-    'postcss-composer': {
       'themes-attr': 'class', // Change to match your theme attribute (e.g. 'data-theme', 'color-scheme')
       // Optional: register custom plugins or mixins
       plugins: {

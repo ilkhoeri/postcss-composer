@@ -41,16 +41,7 @@ npm install postcss-composer postcss postcss-mixins postcss-nested postcss-value
 
 Add `postcss-composer` to your `postcss.config.mjs`:
 
-```js
-export default {
-  plugins: {
-    'postcss-composer': {
-      'themes-attr': 'class'
-    }
-  }
-};
-
-export default {
+```jsexport default {
   plugins: {
     'postcss-composer': {
       'themes-attr': 'class', // Change to match your theme attribute (e.g. 'data-theme', 'color-scheme')
