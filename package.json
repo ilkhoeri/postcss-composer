@@ -1,6 +1,6 @@
 {
   "name": "postcss-composer",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "author": "Ilham Khoeri <ilkhoeri@gmail.com> (https://github.com/ilkhoeri)",
   "repository": {
     "type": "git",
@@ -13,9 +13,9 @@
   },
   "peerDependencies": {
     "postcss": ">=8.2.14",
-    "postcss-mixins": "^9.0.4",
-    "postcss-nested": "^7.0.2",
-    "postcss-values-parser": "^6.0.2"
+    "postcss-mixins": ">=9.0.4",
+    "postcss-nested": ">=7.0.2",
+    "postcss-values-parser": ">=6.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
@@ -81,18 +81,18 @@
   ],
   "homepage": "https://ilkhoeri.github.io/postcss-composer",
   "keywords": [
-    "data-combination",
-    "object-variant",
-    "class-variant",
-    "variant",
-    "classes",
-    "string-merging",
-    "string",
-    "mergedeep",
-    "merged",
-    "variants",
-    "dynamic",
-    "converter"
+    "oeri",
+    "ui",
+    "css",
+    "postcss",
+    "mixin",
+    "plugin",
+    "tailwind",
+    "tailwindcss",
+    "css3",
+    "composer",
+    "postcss-composer",
+    "colors"
   ],
   "license": "MIT",
   "lint-staged": {

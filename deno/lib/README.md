@@ -7,7 +7,7 @@
 
 # postcss-composer
 
-> A PostCSS plugin that provides composable utilities for scalable, theme-aware styling. <br /> — Made for scalable UI design.
+> A PostCSS plugin that provides composable utilities for scalable, theme-aware styling. <br /> — Made for scalable UI design. <br />
 > Includes color mode conversion, dynamic theming, mixins, and scale-based units — AST-aware & Tailwind-friendly.
 
 ---
@@ -43,7 +43,7 @@ Add `postcss-composer` to your `postcss.config.mjs`:
 
 ```js
 export default {
-  plugins: ['@tailwindcss/postcss', 'postcss-composer']
+  plugins: ['@tailwindcss/postcss', 'autoprefixer', 'postcss-composer']
 };
 ```
 
@@ -53,6 +53,7 @@ export default {
 export default {
   plugins: {
     '@tailwindcss/postcss': {},
+    autoprefixer: {},
     'postcss-composer': {
       'themes-attr': 'class', // Change to match your theme attribute (e.g. 'data-theme', 'color-scheme')
       // Optional: register custom plugins or mixins
@@ -138,6 +139,30 @@ Convert contextual CSS variables (even nested or fallback!) using any `culori` m
 - `rtl`: Styles for `[dir="rtl"]`
 - `light`: Styles scoped to `[themes-attr="light"]`
 - `dark`: Styles scoped to `[themes-attr="dark"]`
+
+**CSS variables**
+
+```css
+/* variables */
+
+:root,
+:host {
+  @mixin light-root {
+    --muted: #f0f0f0;
+    --foreground: #202020;
+    --emphasis: #000000;
+    /* ...others */
+  }
+  @mixin dark-root {
+    --muted: #1a1a1a;
+    --foreground: #e0e0e0;
+    --emphasis: #ffffff;
+    /* ...others */
+  }
+}
+```
+
+**CSS class**
 
 ```css
 /* css */

@@ -1,16 +1,16 @@
-import nested from 'postcss-nested';
-import { em } from './postcss-units.ts';
 import type { Plugin } from 'postcss';
+const nested = require('postcss-nested');
 const mixins = require('postcss-mixins');
 const remEm = require('./postcss-units');
 const themes = require('./postcss-themes');
 const colors = require('./postcss-colors');
+
+const AV = 'class';
 /** @internal themesMixin */
 function tm(themesAttr: string, theme: 'light' | 'dark', { r = false } = {}) {
-  const a = themesAttr === 'class' ? (theme === 'dark' ? `.${theme}` : '') : `[${themesAttr}="${theme}"]`;
-  const d = r ? `&${a}` : `${a} &`;
+  const a = themesAttr === AV ? `.${theme}` : `[${themesAttr}="${theme}"]`;
   return {
-    [d]: {
+    [r ? `&${a}` : `${a} &`]: {
       '@mixin-content': {}
     }
   };
@@ -18,7 +18,7 @@ function tm(themesAttr: string, theme: 'light' | 'dark', { r = false } = {}) {
 /** @internal minScreenMixin */
 function mis(_: string, width: string) {
   return {
-    [`@media (width >= ${em(width)})`]: {
+    [`@media (width >= em(${width}))`]: {
       '@mixin-content': {}
     }
   };
@@ -26,7 +26,7 @@ function mis(_: string, width: string) {
 /** @internal maxScreenMixin */
 function mas(_: string, width: string) {
   return {
-    [`@media (width < ${em(width)})`]: {
+    [`@media (width < em(${width}))`]: {
       '@mixin-content': {}
     }
   };
@@ -93,15 +93,12 @@ function np(p: Options['plugins']): Plugin[] {
 }
 
 module.exports = (o: Options) => {
-  const { 'themes-attr': a = 'class', mixins: m = {}, plugins: p = [] } = o;
+  const { 'themes-attr': a = AV, mixins: m = {}, plugins: p = [] } = o;
 
   return {
     postcssPlugin: 'postcss-composer',
     plugins: [
       nested(),
-      colors(),
-      themes(),
-      remEm(),
       mixins({
         mixins: {
           light: tm(a, 'light'),
@@ -116,6 +113,9 @@ module.exports = (o: Options) => {
           ...m
         }
       }),
+      themes(),
+      colors(),
+      remEm(),
       ...np(p)
     ]
   };

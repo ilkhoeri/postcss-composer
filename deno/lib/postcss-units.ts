@@ -1,44 +1,44 @@
 import type { AtRule, Root } from 'postcss';
 
 /** @internal unsafePattern */
-const rg = /^(calc|clamp)\(|(rgba|var|min|max|url|linear-gradient|radial-gradient|repeating-linear-gradient|repeating-radial-gradient)\(/;
+const up = /^(calc|clamp)\(|(rgba|var|min|max|url|linear-gradient|radial-gradient|repeating-linear-gradient|repeating-radial-gradient)\(/;
 
 function _sc(v: string): string {
   return `calc(${v} * var(--scale, 1))`;
 }
 /** @internal converter */
 function ct(u: 'rem' | 'em', { s = false, n = true } = {}) {
-  function convert(v: string | number): string {
-    if ((v === 0 || v === '0') && n) return `0${u}`;
+  function convert(i: string | number): string {
+    if ((i === 0 || i === '0') && n) return `0${u}`;
 
-    if (typeof v === 'number') {
-      const i = `${v / 16}${u}`;
-      return s ? _sc(i) : i;
+    if (typeof i === 'number') {
+      const x = `${i / 16}${u}`;
+      return s ? _sc(x) : x;
     }
 
-    if (typeof v === 'string') {
-      if (rg.test(v)) return v;
+    if (typeof i === 'string') {
+      if (up.test(i)) return i;
 
-      const delimiter = v.includes(',') ? ',' : v.includes(' ') ? ' ' : null;
+      const delimiter = i.includes(',') ? ',' : i.includes(' ') ? ' ' : null;
       if (delimiter) {
-        return v
+        return i
           .split(delimiter)
-          .map(i => convert(i.trim()))
+          .map(x => convert(x.trim()))
           .join(delimiter);
       }
 
-      if (v.includes(u)) return s ? _sc(v) : v;
+      if (i.includes(u)) return s ? _sc(i) : i;
 
-      const r = v.replace('px', '');
+      const r = i.replace('px', '');
       const parsed = Number(r);
-      if (r === v && !n) return v;
+      if (r === i && !n) return i;
       if (!Number.isNaN(parsed)) {
-        const i = `${parsed / 16}${u}`;
-        return s ? _sc(i) : i;
+        const x = `${parsed / 16}${u}`;
+        return s ? _sc(x) : x;
       }
     }
 
-    return v as string;
+    return i as string;
   }
 
   return convert;
@@ -102,5 +102,4 @@ module.exports = () => ({
   }
 });
 
-export { m as em };
 module.exports.postcss = true;
