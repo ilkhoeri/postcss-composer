@@ -43,7 +43,16 @@ Add `postcss-composer` to your `postcss.config.mjs`:
 
 ```js
 export default {
+  plugins: ['@tailwindcss/postcss', 'postcss-composer']
+};
+```
+
+### With Option
+
+```js
+export default {
   plugins: {
+    '@tailwindcss/postcss': {},
     'postcss-composer': {
       'themes-attr': 'class', // Change to match your theme attribute (e.g. 'data-theme', 'color-scheme')
       // Optional: register custom plugins or mixins
